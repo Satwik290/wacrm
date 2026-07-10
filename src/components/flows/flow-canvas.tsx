@@ -746,7 +746,7 @@ function CanvasAddNodeButton({ t }: { t: ReturnType<typeof useTranslations> }) {
         className="border-border bg-popover w-[268px] p-1.5"
       >
         {groupNodeTypesByCategory(ADD_NODE_TYPES).map((group, i) => (
-          <div key={group.id}>
+          <DropdownMenuGroup key={group.id}>
             {i > 0 && <DropdownMenuSeparator />}
             <DropdownMenuLabel className="text-muted-foreground px-2 py-1.5 text-[11px] font-semibold tracking-wider uppercase">
               {group.label}
@@ -776,7 +776,7 @@ function CanvasAddNodeButton({ t }: { t: ReturnType<typeof useTranslations> }) {
                 </DropdownMenuItem>
               );
             })}
-          </div>
+          </DropdownMenuGroup>
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
