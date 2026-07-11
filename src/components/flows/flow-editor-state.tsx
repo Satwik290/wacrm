@@ -184,7 +184,14 @@ export function defaultConfigFor(type: NodeType): Record<string, unknown> {
     case "set_tag":
       return { mode: "add", tag_id: "", next_node_key: "" };
     case "handoff":
+    case "handoff_ai":
       return { note: "" };
+    case "http_fetch":
+      return {
+        url: "",
+        method: "GET",
+        next_node_key: "",
+      };
     case "end":
       return {};
   }

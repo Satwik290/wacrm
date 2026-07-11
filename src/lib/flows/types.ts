@@ -107,6 +107,20 @@ export interface HandoffNodeConfig {
   assign_to?: string;
 }
 
+export interface HandoffAiNodeConfig {
+  /** Optional context or instructions passed to the AI bot. */
+  note?: string;
+}
+
+export interface HttpFetchNodeConfig {
+  url: string;
+  method: "GET" | "POST";
+  body?: string;
+  headers?: Record<string, string>;
+  var_key?: string;
+  next_node_key: string;
+}
+
 /**
  * Captures the customer's next free-text reply into
  * `flow_runs.vars[var_key]`, then advances.
@@ -194,6 +208,8 @@ export type FlowNodeConfig =
   | { node_type: "condition"; config: ConditionNodeConfig }
   | { node_type: "set_tag"; config: SetTagNodeConfig }
   | { node_type: "handoff"; config: HandoffNodeConfig }
+  | { node_type: "handoff_ai"; config: HandoffAiNodeConfig }
+  | { node_type: "http_fetch"; config: HttpFetchNodeConfig }
   | { node_type: "end"; config: EndNodeConfig };
 
 export type FlowNodeType = FlowNodeConfig["node_type"];

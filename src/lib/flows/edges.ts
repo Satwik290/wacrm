@@ -48,7 +48,8 @@ export function deriveCanvasEdges(nodes: BuilderNode[]): CanvasEdge[] {
       case "send_message":
       case "send_media":
       case "collect_input":
-      case "set_tag": {
+      case "set_tag":
+      case "http_fetch": {
         const next = (cfg as { next_node_key?: string }).next_node_key;
         if (next && knownKeys.has(next)) {
           edges.push({
@@ -139,6 +140,7 @@ export function deriveCanvasEdges(nodes: BuilderNode[]): CanvasEdge[] {
       }
 
       case "handoff":
+      case "handoff_ai":
       case "end":
         // Terminal nodes — no outgoing edges.
         break;
@@ -179,6 +181,7 @@ export function outgoingSlots(node: BuilderNode): OutgoingSlot[] {
     case "send_media":
     case "collect_input":
     case "set_tag":
+    case "http_fetch":
       return [{ id: "next", label: "Next" }];
 
     case "condition":
@@ -227,6 +230,7 @@ export function outgoingSlots(node: BuilderNode): OutgoingSlot[] {
     }
 
     case "handoff":
+    case "handoff_ai":
     case "end":
       return [];
   }
@@ -253,6 +257,7 @@ export function applyEdgeConnection(
     case "send_media":
     case "collect_input":
     case "set_tag":
+    case "http_fetch":
       if (sourceHandle === "next") return { next_node_key: targetKey };
       return null;
 
@@ -311,6 +316,7 @@ export function applyEdgeConnection(
     }
 
     case "handoff":
+    case "handoff_ai":
     case "end":
       return null;
   }
@@ -346,7 +352,8 @@ function patchedConfigWithoutKey(
     case "send_message":
     case "send_media":
     case "collect_input":
-    case "set_tag": {
+    case "set_tag":
+    case "http_fetch": {
       const next = (cfg as { next_node_key?: string }).next_node_key;
       if (next !== deletedKey) return null;
       return { ...cfg, next_node_key: "" };
@@ -405,6 +412,7 @@ function patchedConfigWithoutKey(
     }
 
     case "handoff":
+    case "handoff_ai":
     case "end":
       return null;
   }

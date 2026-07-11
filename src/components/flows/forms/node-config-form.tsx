@@ -205,6 +205,26 @@ export function NodeConfigForm({
         />
       );
 
+    case "handoff_ai":
+      return (
+        <TextRow
+          label="AI Context (Optional)"
+          value={(cfg as { note?: string }).note ?? ""}
+          onChange={(v) => onUpdateConfig({ note: v })}
+          rows={2}
+        />
+      );
+
+    case "http_fetch":
+      return (
+        <HttpFetchForm
+          cfg={cfg as any}
+          allNodes={allNodes}
+          currentKey={node.node_key}
+          onUpdateConfig={onUpdateConfig}
+        />
+      );
+
     case "end":
       return (
         <p className="text-xs text-muted-foreground">
@@ -1058,6 +1078,83 @@ function SendMediaForm({
         currentKey={currentKey}
         onChange={(v) => onUpdateConfig({ next_node_key: v })}
         label={t("advanceAfterSending")}
+      />
+    </>
+  );
+}
+
+// ============================================================
+// http_fetch
+// ============================================================
+
+interface HttpFetchCfg {
+  url?: string;
+  method?: "GET" | "POST";
+  body?: string;
+  var_key?: string;
+  next_node_key?: string;
+}
+
+function HttpFetchForm({
+  cfg,
+  allNodes,
+  currentKey,
+  onUpdateConfig,
+}: {
+  cfg: HttpFetchCfg;
+  allNodes: BuilderNode[];
+  currentKey: string;
+  onUpdateConfig: (patch: Record<string, unknown>) => void;
+}) {
+  return (
+    <>
+      <div className="mb-3">
+        <label className="mb-1 block text-xs text-muted-foreground">Method</label>
+        <Select
+          value={cfg.method ?? "GET"}
+          onValueChange={(v) => onUpdateConfig({ method: v })}
+        >
+          <SelectTrigger className="bg-muted">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="GET">GET</SelectItem>
+            <SelectItem value="POST">POST</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <TextRow
+        label="URL (supports {{vars.X}})"
+        value={cfg.url ?? ""}
+        onChange={(v) => onUpdateConfig({ url: v })}
+      />
+
+      {cfg.method === "POST" && (
+        <TextRow
+          label="JSON Body"
+          value={cfg.body ?? ""}
+          onChange={(v) => onUpdateConfig({ body: v })}
+          rows={4}
+        />
+      )}
+
+      <div className="mb-3 mt-3">
+        <label className="mb-1 block text-xs text-muted-foreground">Save Response To (var_key)</label>
+        <Input
+          value={cfg.var_key ?? ""}
+          onChange={(e) => onUpdateConfig({ var_key: e.target.value.replace(/[^a-zA-Z0-9_]/g, "") })}
+          placeholder="api_response"
+          className="bg-muted font-mono text-xs"
+        />
+      </div>
+
+      <NextNodeRow
+        value={cfg.next_node_key ?? ""}
+        allNodes={allNodes}
+        currentKey={currentKey}
+        onChange={(v) => onUpdateConfig({ next_node_key: v })}
+        label="Advance to"
       />
     </>
   );

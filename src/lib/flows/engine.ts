@@ -56,6 +56,8 @@ import {
   type SetTagNodeConfig,
   type StartNodeConfig,
   type KeywordTriggerConfig,
+  type HttpFetchNodeConfig,
+  type HandoffAiNodeConfig,
 } from "./types";
 
 // ============================================================
@@ -116,7 +118,8 @@ export function isAutoAdvancing(node_type: string): boolean {
     node_type === "send_message" ||
     node_type === "send_media" ||
     node_type === "condition" ||
-    node_type === "set_tag"
+    node_type === "set_tag" ||
+    node_type === "http_fetch"
   );
 }
 
@@ -131,7 +134,7 @@ export function isSuspending(node_type: string): boolean {
 
 /** Nodes that end the run. */
 export function isTerminal(node_type: string): boolean {
-  return node_type === "handoff" || node_type === "end";
+  return node_type === "handoff" || node_type === "handoff_ai" || node_type === "end";
 }
 
 /**
@@ -766,6 +769,74 @@ async function advanceFromNodeKey(
     if (node.node_type === "handoff") {
       await executeHandoff(db, run, node);
       return { outcome: "handed_off" };
+    }
+    if (node.node_type === "handoff_ai") {
+      const cfg = node.config as unknown as HandoffAiNodeConfig;
+      if (run.conversation_id) {
+        await db
+          .from("conversations")
+          .update({ 
+            status: "pending", 
+            ai_autoreply_disabled: false,
+            ai_handoff_summary: cfg.note ?? null,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", run.conversation_id);
+      }
+      await logEvent(db, run.id, "handoff", node.node_key, {
+        type: "ai_handoff",
+        note: cfg.note ?? null,
+      });
+      await endRun(db, run.id, "handed_off", "handoff_ai_node");
+      return { outcome: "handed_off" };
+    }
+    if (node.node_type === "http_fetch") {
+      const cfg = node.config as unknown as HttpFetchNodeConfig;
+      try {
+        const url = interpolateVars(cfg.url ?? "", run.vars);
+        const options: RequestInit = {
+          method: cfg.method ?? "GET",
+          headers: { "Content-Type": "application/json" },
+        };
+        if (cfg.method === "POST" && cfg.body) {
+          options.body = interpolateVars(cfg.body, run.vars);
+        }
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        options.signal = controller.signal;
+        
+        const response = await fetch(url, options);
+        clearTimeout(timeoutId);
+        
+        const text = await response.text();
+        let parsed: any;
+        try {
+          parsed = JSON.parse(text);
+        } catch {
+          parsed = text;
+        }
+
+        if (cfg.var_key) {
+           run.vars = { ...run.vars, [cfg.var_key]: parsed };
+           await db.from("flow_runs").update({ vars: run.vars }).eq("id", run.id);
+        }
+
+        await logEvent(db, run.id, "node_entered", node.node_key, {
+           http_fetch: true,
+           status: response.status,
+        });
+
+      } catch (err) {
+         await logEvent(db, run.id, "error", node.node_key, {
+           reason: "http_fetch_failed",
+           detail: err instanceof Error ? err.message : String(err),
+         });
+         await endRun(db, run.id, "failed", "http_fetch_failed");
+         return { outcome: "completed" };
+      }
+      currentKey = cfg.next_node_key ?? "";
+      continue;
     }
     if (node.node_type === "end") {
       await logEvent(db, run.id, "completed", node.node_key);

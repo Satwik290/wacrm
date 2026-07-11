@@ -17,8 +17,10 @@
  */
 
 import {
+  Bot,
   Flag,
   GitFork,
+  Globe,
   Inbox,
   ListChecks,
   ListPlus,
@@ -50,6 +52,8 @@ export type NodeType =
   | 'condition'
   | 'set_tag'
   | 'handoff'
+  | 'handoff_ai'
+  | 'http_fetch'
   | 'end';
 
 export interface BuilderNode {
@@ -159,6 +163,20 @@ export const NODE_META: Record<
     blurb: 'Hands the conversation to a human',
     category: 'flow',
   },
+  handoff_ai: {
+    label: 'Handoff to AI',
+    icon: Bot,
+    color: 'text-indigo-400',
+    blurb: 'Hands the conversation to the AI bot',
+    category: 'flow',
+  },
+  http_fetch: {
+    label: 'HTTP Fetch',
+    icon: Globe,
+    color: 'text-blue-400',
+    blurb: 'Makes an external API request',
+    category: 'logic',
+  },
   end: {
     label: 'End',
     icon: Flag,
@@ -206,6 +224,8 @@ const NODE_HUE: Record<NodeType, { l: number; c: number; h: number }> = {
   condition: { l: 0.72, c: 0.15, h: 65 }, // amber — a fork in the road
   set_tag: { l: 0.65, c: 0.15, h: 350 }, // pink
   handoff: { l: 0.65, c: 0.17, h: 16 }, // rose — hands off
+  handoff_ai: { l: 0.65, c: 0.17, h: 280 }, // indigo — bot
+  http_fetch: { l: 0.65, c: 0.15, h: 230 }, // blue — web
   end: { l: 0.55, c: 0.01, h: 260 }, // neutral grey — terminal
 };
 
@@ -420,9 +440,15 @@ export function summarizeNode(
         ? t ? t('tagPicked', { mode, tag: tagId.slice(0, 8) }) : `${mode} tag ${tagId.slice(0, 8)}…`
         : t ? t('tagNone', { mode }) : `${mode} tag (none picked)`;
     }
-    case 'handoff': {
+    case 'handoff':
+    case 'handoff_ai': {
       const note = typeof cfg.note === 'string' ? cfg.note : '';
       return note.length > 0 ? truncate(note) : null;
+    }
+    case 'http_fetch': {
+      const method = typeof cfg.method === 'string' ? cfg.method : 'GET';
+      const url = typeof cfg.url === 'string' ? cfg.url : '';
+      return url ? `${method} ${truncate(url, 40)}` : null;
     }
   }
 }
