@@ -25,7 +25,9 @@
  */
 
 import { useEffect, useState } from "react";
-import { GitFork, List } from "lucide-react";
+import { GitFork, List, Play } from "lucide-react";
+
+import { WhatsAppSimulator } from "./simulator/whatsapp-simulator";
 
 import { FlowBuilder } from "./flow-builder";
 import { FlowCanvas } from "./flow-canvas";
@@ -77,6 +79,27 @@ export function FlowEditorShell({ initialFlow, initialNodes }: Props) {
     return "canvas";
   });
 
+  const SIM_STORAGE_KEY = "wacrm.flowEditor.simulator";
+  const [showSimulator, setShowSimulator] = useState<boolean>(() => {
+    try {
+      return window.localStorage.getItem(SIM_STORAGE_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleSimulator = () => {
+    setShowSimulator((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem(SIM_STORAGE_KEY, String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
+
   // Live mobile detection. We don't render canvas under the
   // breakpoint regardless of `view` — but we keep `view` itself
   // intact so the user's preference comes back when they widen
@@ -122,6 +145,21 @@ export function FlowEditorShell({ initialFlow, initialNodes }: Props) {
                 label={t("listView")}
               />
             </div>
+            {/* Simulate toggle button */}
+            <button
+              type="button"
+              onClick={toggleSimulator}
+              aria-pressed={showSimulator}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-medium transition-colors",
+                showSimulator
+                  ? "bg-[#00a884]/15 text-[#00a884]"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <Play className="h-3.5 w-3.5" />
+              Simulate
+            </button>
             <div className="ml-auto hidden flex-wrap items-center gap-x-3.5 gap-y-1.5 lg:flex">
               {LEGEND_TYPES.map((t_type) => (
                 <span
@@ -140,15 +178,28 @@ export function FlowEditorShell({ initialFlow, initialNodes }: Props) {
         )}
 
         {/* ---- stage: the active view, owning its own overflow ---- */}
-        <div className="relative mx-6 min-h-0 flex-1 overflow-hidden rounded-xl border border-border bg-card-2">
-          {effectiveView === "canvas" ? (
-            <FlowCanvas />
-          ) : (
-            <div className="absolute inset-0 overflow-y-auto">
-              <FlowBuilder />
+        {effectiveView === "canvas" && showSimulator ? (
+          <div className="mx-6 grid min-h-0 flex-1 grid-cols-[300px_1fr] gap-0 overflow-hidden rounded-xl border border-border bg-card-2">
+            {/* Simulator panel */}
+            <div className="h-full overflow-y-auto border-r border-border bg-[#0d1117]">
+              <WhatsAppSimulator />
             </div>
-          )}
-        </div>
+            {/* Canvas */}
+            <div className="relative min-h-0">
+              <FlowCanvas />
+            </div>
+          </div>
+        ) : (
+          <div className="relative mx-6 min-h-0 flex-1 overflow-hidden rounded-xl border border-border bg-card-2">
+            {effectiveView === "canvas" ? (
+              <FlowCanvas />
+            ) : (
+              <div className="absolute inset-0 overflow-y-auto">
+                <FlowBuilder />
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ---- validation / activate-readiness bar ---- */}
         <div className="px-6 pb-5 pt-3">

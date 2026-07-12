@@ -35,6 +35,7 @@ import {
   List,
 } from "lucide-react"
 
+import { AutomationCanvas } from "./canvas/automation-canvas"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -630,6 +631,7 @@ export function AutomationBuilder({ initial }: { initial: BuilderInitial }) {
   const [state, setState] = useState<BuilderInitial>(initial)
   const [saving, setSaving] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [view, setView] = useState<"list" | "canvas">("list")
 
   function patchTop<K extends keyof BuilderInitial>(key: K, value: BuilderInitial[K]) {
     setState((s) => ({ ...s, [key]: value }))
@@ -737,6 +739,37 @@ export function AutomationBuilder({ initial }: { initial: BuilderInitial }) {
             aria-label={t("activeAria")}
           />
         </div>
+        {/* Canvas / List toggle */}
+        <div className="flex items-center overflow-hidden rounded-md border border-border">
+          <button
+            type="button"
+            onClick={() => setView("list")}
+            className={cn(
+              "flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium transition-colors",
+              view === "list"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            )}
+            aria-label="List view"
+          >
+            <List className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">List</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setView("canvas")}
+            className={cn(
+              "flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium transition-colors",
+              view === "canvas"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            )}
+            aria-label="Canvas view"
+          >
+            <GitBranch className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Canvas</span>
+          </button>
+        </div>
         <Button
           onClick={save}
           disabled={saving}
@@ -747,31 +780,43 @@ export function AutomationBuilder({ initial }: { initial: BuilderInitial }) {
         </Button>
       </header>
 
-      {/* Canvas */}
-      <div className="relative flex-1 overflow-y-auto">
-        <div className="absolute inset-0 bg-[radial-gradient(circle,var(--border)_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none" />
-        <div className="relative mx-auto flex max-w-2xl flex-col items-center gap-0 px-4 py-10">
-          <ResourcesProvider>
-            <TriggerCard
-              type={state.trigger_type}
-              config={state.trigger_config}
-              onTypeChange={(tVal) => patchTop("trigger_type", tVal)}
-              onConfigChange={(c) => patchTop("trigger_config", c)}
-              t={t}
-            />
-            <StepList
-              steps={state.steps}
-              parentPath={[]}
-              expandedId={expandedId}
-              setExpandedId={setExpandedId}
-              updateStep={updateStep}
-              addStepAt={addStepAt}
-              deleteStepAt={deleteStepAt}
-              moveStepAt={moveStepAt}
-            />
-          </ResourcesProvider>
+      {/* Canvas / List body */}
+      {view === "canvas" ? (
+        <div className="relative flex-1 overflow-hidden">
+          <AutomationCanvas
+            steps={state.steps}
+            onSelectStep={(cid) => {
+              setView("list")
+              setExpandedId(cid)
+            }}
+          />
         </div>
-      </div>
+      ) : (
+        <div className="relative flex-1 overflow-y-auto">
+          <div className="absolute inset-0 bg-[radial-gradient(circle,var(--border)_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none" />
+          <div className="relative mx-auto flex max-w-2xl flex-col items-center gap-0 px-4 py-10">
+            <ResourcesProvider>
+              <TriggerCard
+                type={state.trigger_type}
+                config={state.trigger_config}
+                onTypeChange={(tVal) => patchTop("trigger_type", tVal)}
+                onConfigChange={(c) => patchTop("trigger_config", c)}
+                t={t}
+              />
+              <StepList
+                steps={state.steps}
+                parentPath={[]}
+                expandedId={expandedId}
+                setExpandedId={setExpandedId}
+                updateStep={updateStep}
+                addStepAt={addStepAt}
+                deleteStepAt={deleteStepAt}
+                moveStepAt={moveStepAt}
+              />
+            </ResourcesProvider>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
