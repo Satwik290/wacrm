@@ -39,6 +39,8 @@ export interface AutomationContext {
   agent_id?: string
   /** Button / list-row id the customer tapped, for interactive_reply. */
   interactive_reply_id?: string
+  /** Webhook idempotency key. */
+  meta_message_id?: string
 }
 
 export interface DispatchInput {
@@ -104,6 +106,21 @@ export async function runAutomationsForTrigger(input: DispatchInput): Promise<vo
 
     for (const automation of automations as Automation[]) {
       if (!triggerMatches(automation, input.context)) continue
+
+      if (input.context?.meta_message_id) {
+        const { count } = await db
+          .from('automation_logs')
+          .select('id', { count: 'exact', head: true })
+          .eq('automation_id', automation.id)
+          .eq('trigger_event', input.triggerType)
+          .filter('trigger_context->>meta_message_id', 'eq', input.context.meta_message_id)
+        
+        if (count && count > 0) {
+          console.warn('[automations] skipping duplicate webhook trigger', input.context.meta_message_id)
+          continue
+        }
+      }
+
       try {
         await executeAutomation(automation, input)
       } catch (err) {
@@ -132,7 +149,8 @@ export async function resumePendingExecution(pending: {
   log_id: string | null
   parent_step_id: string | null
   branch: 'yes' | 'no' | null
-  next_step_position: number
+  next_step_position?: number
+  next_step_id?: string | null
   context: AutomationContext
 }): Promise<void> {
   const db = supabaseAdmin()
@@ -156,6 +174,7 @@ export async function resumePendingExecution(pending: {
       parentStepId: pending.parent_step_id,
       branch: pending.branch,
       startPosition: pending.next_step_position,
+      startStepId: pending.next_step_id,
       logId: pending.log_id,
       triggerEvent: 'resumed_wait',
     })
@@ -185,6 +204,7 @@ async function executeAutomation(automation: Automation, input: DispatchInput) {
       user_id: automation.user_id,
       contact_id: input.contactId ?? null,
       trigger_event: input.triggerType,
+      trigger_context: input.context ?? {},
       steps_executed: [],
       status: 'success',
     })
@@ -225,7 +245,8 @@ interface ExecuteArgs {
   context: AutomationContext
   parentStepId: string | null
   branch: 'yes' | 'no' | null
-  startPosition: number
+  startPosition?: number
+  startStepId?: string | null
   logId: string | null
   triggerEvent: string
 }
@@ -233,12 +254,21 @@ interface ExecuteArgs {
 async function executeStepsFrom(args: ExecuteArgs): Promise<void> {
   const db = supabaseAdmin()
 
-  const baseQuery = db
+  let baseQuery = db
     .from('automation_steps')
     .select('*')
     .eq('automation_id', args.automation.id)
-    .gte('position', args.startPosition)
-    .order('position', { ascending: true })
+
+  if (args.startStepId) {
+    const { data: st } = await db.from('automation_steps').select('position').eq('id', args.startStepId).maybeSingle()
+    if (st) {
+      baseQuery = baseQuery.gte('position', st.position)
+    }
+  } else if (args.startPosition !== undefined) {
+    baseQuery = baseQuery.gte('position', args.startPosition)
+  }
+
+  baseQuery = baseQuery.order('position', { ascending: true })
 
   const scoped =
     args.parentStepId === null
@@ -268,9 +298,26 @@ async function executeStepsFrom(args: ExecuteArgs): Promise<void> {
     if (step.step_type === 'wait') {
       const cfg = step.step_config as WaitStepConfig
       const ms = waitMs(cfg)
+      
+      let nextStepQuery = db
+        .from('automation_steps')
+        .select('id')
+        .eq('automation_id', args.automation.id)
+        .gt('position', step.position)
+        .order('position', { ascending: true })
+        .limit(1)
+        
+      if (args.parentStepId === null) {
+        nextStepQuery = nextStepQuery.is('parent_step_id', null)
+      } else {
+        nextStepQuery = nextStepQuery.eq('parent_step_id', args.parentStepId).eq('branch', args.branch ?? 'yes')
+      }
+      
+      const { data: nextSteps } = await nextStepQuery
+      const nextStepId = nextSteps?.[0]?.id ?? null
+
       await db.from('automation_pending_executions').insert({
         automation_id: args.automation.id,
-        // Tenancy: account_id required NOT NULL post-017.
         account_id: args.automation.account_id,
         user_id: args.automation.user_id,
         contact_id: args.contactId,
@@ -278,6 +325,7 @@ async function executeStepsFrom(args: ExecuteArgs): Promise<void> {
         parent_step_id: args.parentStepId,
         branch: args.branch,
         next_step_position: step.position + 1,
+        next_step_id: nextStepId,
         context: args.context,
         run_at: new Date(Date.now() + ms).toISOString(),
         status: 'pending',

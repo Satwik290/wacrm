@@ -39,14 +39,9 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   applyNodeChanges,
-  Background,
-  BackgroundVariant,
-  Controls,
   Handle,
-  MiniMap,
   Panel,
   Position,
-  ReactFlow,
   ReactFlowProvider,
   useReactFlow,
   type Connection,
@@ -58,6 +53,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Plus, Trash2 } from 'lucide-react';
+import { CanvasWrapper } from '@/components/canvas-shared/canvas-wrapper';
 
 import { useTranslations } from 'next-intl';
 
@@ -522,57 +518,30 @@ function FlowCanvasInner() {
   return (
     <>
       <div className="h-full w-full overflow-hidden">
-        <ReactFlow
+        <CanvasWrapper
           nodes={rfNodes}
           edges={rfEdges}
           nodeTypes={NODE_TYPES}
-          fitView
-          fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
-          proOptions={{ hideAttribution: true }}
           onNodesChange={handleNodesChange}
           onNodeDragStop={handleNodeDragStop}
           onNodeClick={handleNodeClick}
           onConnect={handleConnect}
           onNodesDelete={handleNodesDelete}
           onEdgesDelete={handleEdgesDelete}
-          // Default is "Backspace" only — accept both so Mac users
-          // hitting Delete (Fn+Backspace) get the same behavior.
           deleteKeyCode={['Backspace', 'Delete']}
           nodesConnectable={true}
           edgesFocusable={true}
           elementsSelectable={true}
-          // Lower default min/max zoom than the lib's defaults; the
-          // tiles already truncate their summary at a reasonable
-          // size, so we don't need to zoom past 1.5x.
           minZoom={0.2}
           maxZoom={1.5}
+          minimapNodeColor={(n) =>
+            nodeColors((n.data as NodeData).node.node_type).solid
+          }
         >
-          {/* Dot grid, matching the design's faint canvas backdrop. */}
-          <Background
-            variant={BackgroundVariant.Dots}
-            gap={22}
-            size={1.4}
-            color="var(--border)"
-          />
-          <Controls
-            className="!border-border !bg-card [&_button]:!border-border [&_button]:!bg-card [&_button:hover]:!bg-muted [&_button_svg]:!fill-foreground !overflow-hidden !rounded-xl !border !shadow-[0_6px_20px_-8px_rgba(0,0,0,0.5)]"
-            showInteractive={false}
-          />
-          <MiniMap
-            pannable
-            zoomable
-            nodeColor={(n) =>
-              nodeColors((n.data as NodeData).node.node_type).solid
-            }
-            nodeStrokeWidth={0}
-            nodeBorderRadius={3}
-            maskColor="color-mix(in oklch, var(--background) 70%, transparent)"
-            className="!border-border !bg-card !rounded-xl !border !shadow-[0_6px_20px_-8px_rgba(0,0,0,0.5)]"
-          />
           <Panel position="top-left" className="!top-4 !left-4">
             <CanvasAddNodeButton t={t} />
           </Panel>
-        </ReactFlow>
+        </CanvasWrapper>
       </div>
 
       <NodeEditSheet

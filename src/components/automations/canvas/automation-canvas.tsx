@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 /**
  * AutomationCanvas
@@ -10,19 +10,17 @@
 
 import { useMemo } from "react"
 import {
-  Background,
-  BackgroundVariant,
-  Controls,
   Handle,
-  MiniMap,
   Position,
-  ReactFlow,
   ReactFlowProvider,
   type Edge,
   type Node,
   type NodeProps,
 } from "@xyflow/react"
-import "@xyflow/react/dist/style.css"
+
+import { CanvasWrapper } from "@/components/canvas-shared/canvas-wrapper"
+import { NodeChip } from "@/components/canvas-shared/node-chip"
+import { MessageSquare, MousePointerClick, List, FileText, Tag, TagIcon, UserCheck, PencilLine, Briefcase, Hourglass, GitBranch, Webhook, CircleSlash, Zap } from "lucide-react"
 
 import type { AutomationStepType } from "@/types"
 import type { BuilderStep } from "../automation-builder"
@@ -58,6 +56,22 @@ const STEP_LABELS: Record<AutomationStepType, string> = {
   wait:                 "Wait",
   condition:            "Condition",
   close_conversation:   "Close",
+}
+
+const STEP_ICONS: Record<AutomationStepType, React.ElementType> = {
+  send_message: MessageSquare,
+  send_buttons: MousePointerClick,
+  send_list: List,
+  send_template: FileText,
+  add_tag: Tag,
+  remove_tag: TagIcon,
+  assign_conversation: UserCheck,
+  update_contact_field: PencilLine,
+  create_deal: Briefcase,
+  wait: Hourglass,
+  condition: GitBranch,
+  send_webhook: Webhook,
+  close_conversation: CircleSlash,
 }
 
 function summaryFor(step: BuilderStep): string {
@@ -103,6 +117,7 @@ function AutomationStepNode({ data }: NodeProps) {
   const { step, onSelectStep } = data as StepNodeData
   const c = STEP_COLORS[step.step_type] ?? STEP_COLORS.send_message
   const label = STEP_LABELS[step.step_type] ?? step.step_type
+  const Icon = STEP_ICONS[step.step_type] ?? Zap
   const summary = summaryFor(step)
   const isCondition = step.step_type === "condition"
 
@@ -111,8 +126,6 @@ function AutomationStepNode({ data }: NodeProps) {
       onClick={() => onSelectStep(step.cid)}
       style={{
         "--nc": c.solid,
-        "--nc-soft": c.soft,
-        "--nc-text": c.text,
         borderColor: "var(--border)",
         backgroundColor: "var(--card)",
         width: 220,
@@ -125,18 +138,9 @@ function AutomationStepNode({ data }: NodeProps) {
         className="!h-2.5 !w-2.5 !border-2 !bg-[var(--card)] !border-[var(--nc)]"
       />
 
-      <div className="px-3.5 py-3">
-        <div
-          className="mb-2 h-0.5 w-8 rounded-full"
-          style={{ backgroundColor: c.solid }}
-        />
-        <div
-          className="mb-0.5 text-[10px] font-semibold uppercase tracking-widest"
-          style={{ color: c.text }}
-        >
-          {label}
-        </div>
-        <div className="line-clamp-2 text-[11px] leading-relaxed text-[var(--muted-foreground)]">
+      <div className="px-3 py-3">
+        <NodeChip label={label} icon={<Icon />} color={c} />
+        <div className="line-clamp-2 mt-1 text-[11px] leading-relaxed text-[var(--muted-foreground)]">
           {summary}
         </div>
         {isCondition && (
@@ -292,42 +296,15 @@ function AutomationCanvasInner({ steps, onSelectStep }: Props) {
 
   return (
     <div className="h-full w-full overflow-hidden">
-      <ReactFlow
+      <CanvasWrapper
         nodes={nodes}
         edges={edges}
         nodeTypes={NODE_TYPES}
-        fitView
-        fitViewOptions={{ padding: 0.22, maxZoom: 1 }}
-        proOptions={{ hideAttribution: true }}
-        onlyRenderVisibleElements
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable={false}
-        panOnScroll
-        zoomOnScroll
-        minZoom={0.15}
-        maxZoom={2}
-      >
-        <Background
-          variant={BackgroundVariant.Dots}
-          gap={20}
-          size={1.2}
-          color="var(--border)"
-        />
-        <Controls
-          showInteractive={false}
-          className="!overflow-hidden !rounded-xl !border !border-[var(--border)] !bg-[var(--card)] !shadow-[0_6px_20px_-8px_rgba(0,0,0,0.5)] [&_button]:!border-[var(--border)] [&_button]:!bg-[var(--card)] [&_button:hover]:!bg-[var(--muted)] [&_button_svg]:!fill-[var(--foreground)]"
-        />
-        <MiniMap
-          pannable
-          zoomable
-          nodeColor={minimapNodeColor}
-          nodeStrokeWidth={0}
-          nodeBorderRadius={4}
-          maskColor="color-mix(in oklch, var(--background) 70%, transparent)"
-          className="!rounded-xl !border !border-[var(--border)] !bg-[var(--card)] !shadow-[0_6px_20px_-8px_rgba(0,0,0,0.5)]"
-        />
-      </ReactFlow>
+        minimapNodeColor={minimapNodeColor}
+      />
     </div>
   )
 }
@@ -339,3 +316,4 @@ export function AutomationCanvas({ steps, onSelectStep }: Props) {
     </ReactFlowProvider>
   )
 }
+

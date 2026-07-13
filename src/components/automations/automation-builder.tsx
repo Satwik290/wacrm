@@ -13,6 +13,7 @@ import { toast } from "sonner"
 import {
   ArrowLeft,
   ChevronDown,
+  Play,
   Plus,
   Trash2,
   GripVertical,
@@ -36,6 +37,7 @@ import {
 } from "lucide-react"
 
 import { AutomationCanvas } from "./canvas/automation-canvas"
+import { AutomationSimulator } from "./simulator/automation-simulator"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -632,6 +634,24 @@ export function AutomationBuilder({ initial }: { initial: BuilderInitial }) {
   const [saving, setSaving] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [view, setView] = useState<"list" | "canvas">("list")
+  const [showSimulator, setShowSimulator] = useState(false)
+
+  // Persist simulator toggle in localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("wacrm.automationBuilder.simulator")
+      if (stored) setShowSimulator(stored === "true")
+    } catch {}
+  }, [])
+  const toggleSimulator = () => {
+    setShowSimulator((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem("wacrm.automationBuilder.simulator", String(next))
+      } catch {}
+      return next
+    })
+  }
 
   function patchTop<K extends keyof BuilderInitial>(key: K, value: BuilderInitial[K]) {
     setState((s) => ({ ...s, [key]: value }))
@@ -770,6 +790,20 @@ export function AutomationBuilder({ initial }: { initial: BuilderInitial }) {
             <span className="hidden sm:inline">Canvas</span>
           </button>
         </div>
+        <div className="ml-2 mr-auto flex items-center">
+          <Button
+            variant={showSimulator ? "secondary" : "ghost"}
+            size="sm"
+            onClick={toggleSimulator}
+            className={cn(
+              "h-8 gap-1.5 text-xs font-medium",
+              showSimulator ? "bg-primary/15 text-primary" : "text-muted-foreground"
+            )}
+          >
+            <Play className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Simulate</span>
+          </Button>
+        </div>
         <Button
           onClick={save}
           disabled={saving}
@@ -782,7 +816,15 @@ export function AutomationBuilder({ initial }: { initial: BuilderInitial }) {
 
       {/* Canvas / List body */}
       {view === "canvas" ? (
-        <div className="relative flex-1 overflow-hidden">
+        <div className={cn(
+          "relative flex-1 overflow-hidden",
+          showSimulator ? "grid grid-cols-[320px_1fr] bg-background" : "block"
+        )}>
+          {showSimulator && (
+            <div className="h-full border-r border-border bg-[#0d1117] p-0 xl:p-2">
+              <AutomationSimulator steps={state.steps} />
+            </div>
+          )}
           <AutomationCanvas
             steps={state.steps}
             onSelectStep={(cid) => {

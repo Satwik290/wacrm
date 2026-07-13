@@ -40,6 +40,7 @@ import {
   engineSendText,
 } from "./meta-send";
 import { decideFallback, resolveFallbackPolicy } from "./fallback";
+import { isDeliverableUrl } from "@/lib/webhooks/ssrf";
 import {
   type CollectInputNodeConfig,
   type ConditionNodeConfig,
@@ -794,9 +795,13 @@ async function advanceFromNodeKey(
       const cfg = node.config as unknown as HttpFetchNodeConfig;
       try {
         const url = interpolateVars(cfg.url ?? "", run.vars);
+        if (!(await isDeliverableUrl(url))) {
+          throw new Error("http_fetch: destination not allowed");
+        }
         const options: RequestInit = {
           method: cfg.method ?? "GET",
           headers: { "Content-Type": "application/json" },
+          redirect: "manual",
         };
         if (cfg.method === "POST" && cfg.body) {
           options.body = interpolateVars(cfg.body, run.vars);
