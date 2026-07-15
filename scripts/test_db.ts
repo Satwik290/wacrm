@@ -18,7 +18,7 @@ const supabase = createClient(
 )
 const ACCOUNT_ID = process.env.ARALYA_ACCOUNT_ID!
 
-async function test(label: string, fn: () => Promise<{ data: unknown; error: { message: string } | null }>) {
+async function test(label: string, fn: () => PromiseLike<{ data: unknown; error: { message: string } | null }>) {
   try {
     const { data, error } = await fn()
     if (error) {

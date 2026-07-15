@@ -23,7 +23,8 @@ function uid() {
   return crypto.randomUUID()
 }
 
-// ─── Flow definitions ─────────────────�const flows = [
+// Flow definitions
+const flows = [
   // ── 1. ONBOARDING ───────────────────────────────────────────────
   {
     name: 'Onboarding',
@@ -38,43 +39,45 @@ function uid() {
         entry_node_id: start,
         nodes: {
           [start]: {
-            key: start, type: 'start', config: {},
-            next_node_key: askName,
+            key: start, type: 'start', 
+            config: { next_node_key: askName }
           },
           [askName]: {
             key: askName, type: 'send_message',
-            config: { text: 'Hi! Welcome to Aralya 🌸 I\'m your flower delivery assistant.\n\nWhat\'s your name?' },
-            next_node_key: choosePlan,
+            config: { 
+              text: "Hi! Welcome to Aralya 🌸 I'm your flower delivery assistant.\n\nWhat's your name?",
+              next_node_key: choosePlan
+            }
           },
           [choosePlan]: {
             key: choosePlan, type: 'send_buttons',
             config: {
-              body: 'Choose your subscription plan, {{1}}:',
-              body_vars: ['{{contact.name}}'],
+              text: 'Choose your subscription plan:',
               buttons: [
-                { id: 'plan_lotus',    title: '🌸 Lotus — ₹449/mo' },
-                { id: 'plan_marigold', title: '🌼 Marigold — ₹549/mo' },
-                { id: 'plan_premium',  title: '✨ Premium — ₹649/mo' },
+                { reply_id: 'plan_lotus',    title: '🌸 Lotus — ₹449/mo', next_node_key: sendLink },
+                { reply_id: 'plan_marigold', title: '🌼 Marigold — ₹549/mo', next_node_key: sendLink },
+                { reply_id: 'plan_premium',  title: '✨ Premium — ₹649/mo', next_node_key: sendLink },
               ],
-            },
-            next_node_key: sendLink,
+            }
           },
           [sendLink]: {
             key: sendLink, type: 'send_message',
-            config: { text: 'Great choice! 🎉 Here is your secure payment link:\nhttps://rzp.io/l/aralya-{{vars.plan}}\n\nOnce paid, your flowers start tomorrow morning 6–7 AM.' },
-            next_node_key: waitPayment,
+            config: { 
+              text: 'Great choice! 🎉 Here is your secure payment link:\nhttps://rzp.io/l/aralya-{{vars.plan}}\n\nOnce paid, your flowers start tomorrow morning 6–7 AM.',
+              next_node_key: waitPayment
+            }
           },
           [waitPayment]: {
             key: waitPayment, type: 'end',
-            config: { reason: 'awaiting_payment' },
+            config: { reason: 'awaiting_payment' }
           },
           [endNode]: {
             key: endNode, type: 'end',
-            config: {},
-          },
-        },
+            config: {}
+          }
+        }
       }
-    })(),
+    })()
   },
 
   // ── 2. PAUSE / RESUME ────────────────────────────────────────────
@@ -91,47 +94,47 @@ function uid() {
         entry_node_id: start,
         nodes: {
           [start]: {
-            key: start, type: 'start', config: {},
-            next_node_key: detect,
+            key: start, type: 'start', 
+            config: { next_node_key: detect }
           },
           [detect]: {
             key: detect, type: 'send_buttons',
             config: {
-              body: 'What would you like to do with your subscription?',
+              text: 'What would you like to do with your subscription?',
               buttons: [
-                { id: 'action_pause',  title: '⏸ Pause delivery' },
-                { id: 'action_resume', title: '▶️ Resume delivery' },
-              ],
-            },
-            next_node_key: pauseMenu,
+                { reply_id: 'action_pause',  title: '⏸ Pause delivery', next_node_key: pauseMenu },
+                { reply_id: 'action_resume', title: '▶️ Resume delivery', next_node_key: resumeMsg }
+              ]
+            }
           },
           [pauseMenu]: {
             key: pauseMenu, type: 'send_list',
             config: {
-              button_text: 'Select pause duration',
-              body: 'How long should we pause?',
+              button_label: 'Select duration',
+              text: 'How long should we pause?',
               sections: [{
                 title: 'Duration',
                 rows: [
-                  { id: 'pause_1w',   title: '1 week' },
-                  { id: 'pause_2w',   title: '2 weeks' },
-                  { id: 'pause_date', title: 'Until I say resume' },
-                ],
-              }],
-            },
-            next_node_key: endNode,
+                  { reply_id: 'pause_1w',   title: '1 week', next_node_key: endNode },
+                  { reply_id: 'pause_2w',   title: '2 weeks', next_node_key: endNode },
+                  { reply_id: 'pause_date', title: 'Until I resume', next_node_key: endNode }
+                ]
+              }]
+            }
           },
           [resumeMsg]: {
             key: resumeMsg, type: 'send_message',
-            config: { text: '✅ Your subscription is active again! Flowers resume tomorrow morning 6–7 AM. 🌸' },
-            next_node_key: endNode,
+            config: { 
+              text: '✅ Your subscription is active again! Flowers resume tomorrow morning 6–7 AM. 🌸',
+              next_node_key: endNode
+            }
           },
           [endNode]: {
-            key: endNode, type: 'end', config: {},
-          },
-        },
+            key: endNode, type: 'end', config: {}
+          }
+        }
       }
-    })(),
+    })()
   },
 
   // ── 3. CHURN PREVENTION ──────────────────────────────────────────
@@ -146,31 +149,35 @@ function uid() {
       return {
         entry_node_id: start,
         nodes: {
-          [start]: { key: start, type: 'start', config: {}, next_node_key: msg },
+          [start]: { 
+            key: start, type: 'start', 
+            config: { next_node_key: msg } 
+          },
           [msg]: {
             key: msg, type: 'send_message',
-            config: { text: 'We miss you! 🌸 It\'s been a while since your last delivery. Everything okay?' },
-            next_node_key: menu,
+            config: { 
+              text: "We miss you! 🌸 It's been a while since your last delivery. Everything okay?",
+              next_node_key: menu
+            }
           },
           [menu]: {
             key: menu, type: 'send_buttons',
             config: {
-              body: 'How can we help?',
+              text: 'How can we help?',
               buttons: [
-                { id: 'churn_quality', title: '😕 Quality issue' },
-                { id: 'churn_price',   title: '💰 Price concern' },
-                { id: 'churn_resume',  title: '✅ Ready to resume!' },
-              ],
-            },
-            next_node_key: endNode,
+                { reply_id: 'churn_quality', title: '😕 Quality issue', next_node_key: endNode },
+                { reply_id: 'churn_price',   title: '💰 Price concern', next_node_key: endNode },
+                { reply_id: 'churn_resume',  title: '✅ Ready to resume!', next_node_key: endNode }
+              ]
+            }
           },
-          [endNode]: { key: endNode, type: 'end', config: {} },
-        },
+          [endNode]: { key: endNode, type: 'end', config: {} }
+        }
       }
-    })(),
+    })()
   },
 
-  // ── 4. VENDOR COORDINATION ───────────────────────────────────────
+  // ── 4. VENDOR DAILY COORDINATION ─────────────────────────────────
   {
     name: 'Vendor Daily Coordination',
     description: 'Send vendor their daily order summary and wait for their confirmation.',
@@ -182,21 +189,29 @@ function uid() {
       return {
         entry_node_id: start,
         nodes: {
-          [start]: { key: start, type: 'start', config: {}, next_node_key: summary },
+          [start]: { 
+            key: start, type: 'start', 
+            config: { next_node_key: summary } 
+          },
           [summary]: {
             key: summary, type: 'send_message',
-            config: { text: '🌸 Good evening! Here is your order brief for tomorrow ({{vars.date}}):\n\n📦 Total orders: {{vars.order_count}}\n🗺️ Zone: {{vars.zone}}\n\nPlease confirm you\'ll be ready by replying ✓' },
-            next_node_key: confirm,
+            config: { 
+              text: "🌸 Good evening! Here is your order brief for tomorrow ({{vars.date}}):\n\n📦 Total orders: {{vars.order_count}}\n🗺️ Zone: {{vars.zone}}\n\nPlease confirm you'll be ready by replying ✓",
+              next_node_key: confirm
+            }
           },
           [confirm]: {
             key: confirm, type: 'collect_input',
-            config: { var_key: 'vendor_confirm', prompt: 'Reply ✓ to confirm or ✗ to flag an issue.' },
-            next_node_key: endNode,
+            config: { 
+              var_key: 'vendor_confirm', 
+              prompt_text: 'Reply ✓ to confirm or ✗ to flag an issue.',
+              next_node_key: endNode
+            }
           },
-          [endNode]: { key: endNode, type: 'end', config: {} },
-        },
+          [endNode]: { key: endNode, type: 'end', config: {} }
+        }
       }
-    })(),
+    })()
   },
 
   // ── 5. ISSUE REPORTING ───────────────────────────────────────────
@@ -211,51 +226,41 @@ function uid() {
       return {
         entry_node_id: start,
         nodes: {
-          [start]: { key: start, type: 'start', config: {}, next_node_key: ask },
+          [start]: { 
+            key: start, type: 'start', 
+            config: { next_node_key: ask } 
+          },
           [ask]: {
             key: ask, type: 'send_buttons',
             config: {
-              body: 'Sorry to hear that! What kind of issue is this?',
+              text: 'Sorry to hear that! What kind of issue is this?',
               buttons: [
-                { id: 'issue_delivery', title: '🚚 Delivery issue' },
-                { id: 'issue_quality',  title: '🌺 Quality issue' },
-                { id: 'issue_payment',  title: '💳 Payment issue' },
-              ],
-            },
-            next_node_key: typeMenu,
+                { reply_id: 'issue_delivery', title: '🚚 Delivery issue', next_node_key: typeMenu },
+                { reply_id: 'issue_quality',  title: '🌺 Quality issue', next_node_key: typeMenu },
+                { reply_id: 'issue_payment',  title: '💳 Payment issue', next_node_key: typeMenu }
+              ]
+            }
           },
           [typeMenu]: {
             key: typeMenu, type: 'collect_input',
-            config: { var_key: 'issue_description', prompt: 'Please describe the issue briefly:' },
-            next_node_key: collect,
+            config: { 
+              var_key: 'issue_description', 
+              prompt_text: 'Please describe the issue briefly:',
+              next_node_key: collect
+            }
           },
           [collect]: {
             key: collect, type: 'send_message',
-            config: { text: '✅ Thanks! We\'ve logged your issue and our team will call you within 30 minutes.\n\nTicket reference: {{vars.support_ticket_id}}' },
-            next_node_key: endNode,
+            config: { 
+              text: "✅ Thanks! We've logged your issue and our team will call you within 30 minutes.\n\nTicket reference: {{vars.support_ticket_id}}",
+              next_node_key: endNode
+            }
           },
-          [endNode]: { key: endNode, type: 'end', config: {} },
-        },
+          [endNode]: { key: endNode, type: 'end', config: {} }
+        }
       }
-    })(),
-  },
-]      next_node_key: typeMenu,
-          },
-          [typeMenu]: {
-            key: typeMenu, type: 'collect_input',
-            config: { var_key: 'issue_description', prompt: 'Please describe the issue briefly:' },
-            next_node_key: collect,
-          },
-          [collect]: {
-            key: collect, type: 'send_message',
-            config: { text: '✅ Thanks! We\'ve logged your issue and our team will call you within 30 minutes.\n\nTicket reference: {{vars.support_ticket_id}}' },
-            next_node_key: endNode,
-          },
-          [endNode]: { key: endNode, type: 'end', config: {} },
-        },
-      }
-    })(),
-  },
+    })()
+  }
 ]
 
 async function seedFlows() {
@@ -282,7 +287,11 @@ async function seedFlows() {
       .insert({
         account_id: ACCOUNT_ID,
         user_id: USER_ID,
-        ...meta,
+        name: meta.name,
+        description: meta.description,
+        trigger_type: meta.trigger_type,
+        trigger_config: meta.trigger_config,
+        status: meta.status,
       })
       .select('id')
       .single()
@@ -293,13 +302,17 @@ async function seedFlows() {
     }
 
     // Insert nodes
-    const nodeRows = Object.values(nodes.nodes).map((n) => ({
-      flow_id: flow.id,
-      key: (n as { key: string }).key,
-      node_type: (n as { type: string }).type,
-      config: (n as { config: unknown }).config,
-      next_node_key: (n as { next_node_key?: string }).next_node_key ?? null,
-    }))
+    const nodeRows = Object.values(nodes.nodes).map((n) => {
+      const nodeDef = n as { key: string; type: string; config: Record<string, unknown> }
+      return {
+        flow_id: flow.id,
+        node_key: nodeDef.key,
+        node_type: nodeDef.type,
+        config: nodeDef.config,
+        position_x: 0,
+        position_y: 0,
+      }
+    })
 
     const { error: nodesError } = await supabase.from('flow_nodes').insert(nodeRows)
     if (nodesError) {

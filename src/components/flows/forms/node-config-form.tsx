@@ -218,7 +218,7 @@ export function NodeConfigForm({
     case "http_fetch":
       return (
         <HttpFetchForm
-          cfg={cfg as any}
+          cfg={cfg as unknown as HttpFetchCfg}
           allNodes={allNodes}
           currentKey={node.node_key}
           onUpdateConfig={onUpdateConfig}

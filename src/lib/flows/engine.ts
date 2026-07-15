@@ -815,7 +815,7 @@ async function advanceFromNodeKey(
         clearTimeout(timeoutId);
         
         const text = await response.text();
-        let parsed: any;
+        let parsed: unknown;
         try {
           parsed = JSON.parse(text);
         } catch {

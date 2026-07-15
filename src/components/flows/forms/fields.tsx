@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
-import { NODE_META, type BuilderNode } from "../shared";
+import { NODE_META, type BuilderNode, summarizeNode } from "../shared";
 
 export function TextRow({
   label,
@@ -106,6 +106,7 @@ export function NodeKeySelect({
   className?: string;
 }) {
   const t = useTranslations("Flows.builder.form");
+  const tSummary = useTranslations("Flows.summary");
   const options = nodes.filter((n) => n.node_key !== excludeKey);
   return (
     <Select
@@ -119,13 +120,24 @@ export function NodeKeySelect({
         <SelectItem value="__none__">{t("none")}</SelectItem>
         {options.map((n) => {
           const Icon = NODE_META[n.node_type].icon;
+          const label = NODE_META[n.node_type].label;
+          const summary = summarizeNode(n, tSummary);
+          
           return (
             <SelectItem key={n.node_key} value={n.node_key}>
-              <span className="inline-flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-1.5 max-w-[280px]">
                 <Icon
-                  className={cn("h-3 w-3", NODE_META[n.node_type].color)}
+                  className={cn("h-3 w-3 shrink-0", NODE_META[n.node_type].color)}
                 />
-                {n.node_key}
+                <span className="font-semibold text-xs shrink-0">{label}</span>
+                {summary && (
+                  <span className="text-[10px] text-muted-foreground truncate max-w-[120px]">
+                    - {summary}
+                  </span>
+                )}
+                <span className="text-[9px] text-muted-foreground/60 font-mono shrink-0 ml-1">
+                  ({n.node_key.slice(0, 8)}…)
+                </span>
               </span>
             </SelectItem>
           );

@@ -8,16 +8,22 @@ import {
   ReactFlow,
   type ReactFlowProps,
   type Node,
+  type Edge,
 } from "@xyflow/react"
 import "@xyflow/react/dist/style.css"
 
-interface CanvasWrapperProps extends Omit<ReactFlowProps, "children"> {
-  minimapNodeColor?: (node: Node) => string
+interface CanvasWrapperProps<NodeType extends Node = Node, EdgeType extends Edge = Edge>
+  extends ReactFlowProps<NodeType, EdgeType> {
+  minimapNodeColor?: (node: NodeType) => string
 }
 
-export function CanvasWrapper({ minimapNodeColor, ...props }: CanvasWrapperProps) {
+export function CanvasWrapper<NodeType extends Node = Node, EdgeType extends Edge = Edge>({
+  minimapNodeColor,
+  children,
+  ...props
+}: CanvasWrapperProps<NodeType, EdgeType>) {
   return (
-    <ReactFlow
+    <ReactFlow<NodeType, EdgeType>
       fitView
       fitViewOptions={{ padding: 0.22, maxZoom: 1 }}
       proOptions={{ hideAttribution: true }}
@@ -41,12 +47,13 @@ export function CanvasWrapper({ minimapNodeColor, ...props }: CanvasWrapperProps
       <MiniMap
         pannable
         zoomable
-        nodeColor={minimapNodeColor || "var(--border)"}
+        nodeColor={minimapNodeColor || (() => "var(--border)")}
         nodeStrokeWidth={0}
         nodeBorderRadius={4}
         maskColor="color-mix(in oklch, var(--background) 70%, transparent)"
         className="!rounded-xl !border !border-[var(--border)] !bg-[var(--card)] !shadow-[0_6px_20px_-8px_rgba(0,0,0,0.5)]"
       />
+      {children}
     </ReactFlow>
   )
 }

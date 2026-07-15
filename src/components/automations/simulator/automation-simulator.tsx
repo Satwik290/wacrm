@@ -203,7 +203,7 @@ export function AutomationSimulator({ steps }: { steps: BuilderStep[] }) {
                 type: "buttons",
                 content: {
                   text: body?.text || "(choose an option)",
-                  buttons: (cfg.action as any)?.buttons || [],
+                  buttons: ((cfg.action as Record<string, unknown>)?.buttons as unknown[]) || [],
                 },
                 timestamp: new Date(),
               },
@@ -215,7 +215,7 @@ export function AutomationSimulator({ steps }: { steps: BuilderStep[] }) {
 
         case "send_list": {
           const body = cfg.body as { text?: string } | undefined
-          const action = cfg.action as any
+          const action = cfg.action as Record<string, unknown>
           const next = getNextPath(path)
           const updated: SimulatorSession = {
             ...currentSession,
@@ -437,10 +437,11 @@ export function AutomationSimulator({ steps }: { steps: BuilderStep[] }) {
 
   const handlePlay = useCallback(() => {
     if (steps.length === 0) {
-      setSession({
-        ...EMPTY_SESSION,
+      setSession((prev) => ({
+        ...prev,
         status: "ended",
         history: [
+          ...prev.history,
           {
             id: msgId(),
             sender: "system",
@@ -449,13 +450,43 @@ export function AutomationSimulator({ steps }: { steps: BuilderStep[] }) {
             timestamp: new Date(),
           },
         ],
-      })
+      }))
       return
     }
-    const init: SimulatorSession = { ...EMPTY_SESSION, status: "running" }
-    setCurrentPath("0")
-    setSession(processNode("0", init))
+    
+    setSession((prev) => {
+      // Small artificial delay to make it feel more real if history exists
+      const init: SimulatorSession = { ...prev, status: "running" }
+      setCurrentPath("0")
+      return processNode("0", init)
+    })
   }, [steps, processNode])
+
+  const handleTextSubmit = useCallback(() => {
+    if (!inputValue.trim()) return
+    
+    const customerMsg: SimMessage = {
+      id: msgId(),
+      sender: "customer",
+      type: "text",
+      content: inputValue.trim(),
+      timestamp: new Date(),
+    }
+    
+    setSession((prev) => ({
+      ...prev,
+      history: [...prev.history, customerMsg],
+    }))
+    
+    setInputValue("")
+    
+    // Automatically trigger the automation if it's idle
+    if (session.status === "idle") {
+      setTimeout(() => {
+        handlePlay()
+      }, 600)
+    }
+  }, [inputValue, session.status, handlePlay])
 
   const handleReset = useCallback(() => {
     setSession(EMPTY_SESSION)
@@ -488,8 +519,34 @@ export function AutomationSimulator({ steps }: { steps: BuilderStep[] }) {
     [currentPath, session, processNode],
   )
 
-  const handleButtonTap = () => {}
-  const handleListRowTap = () => {}
+  const handleButtonTap = useCallback((title: string) => {
+    const customerMsg: SimMessage = {
+      id: msgId(),
+      sender: "customer",
+      type: "text",
+      content: title,
+      timestamp: new Date(),
+    }
+    setSession((prev) => ({
+      ...prev,
+      history: [...prev.history, customerMsg],
+    }))
+  }, [])
+
+  const handleListRowTap = useCallback((title: string) => {
+    const customerMsg: SimMessage = {
+      id: msgId(),
+      sender: "customer",
+      type: "text",
+      content: title,
+      timestamp: new Date(),
+    }
+    setSession((prev) => ({
+      ...prev,
+      history: [...prev.history, customerMsg],
+    }))
+    setListOpen(null)
+  }, [])
 
   return (
     <div className="flex h-full flex-col items-center justify-start overflow-hidden rounded-xl bg-[#0d1117] px-3 py-4">
@@ -630,6 +687,26 @@ export function AutomationSimulator({ steps }: { steps: BuilderStep[] }) {
           )}
         </div>
 
+        {/* Text input for simulating customer trigger */}
+        <div className="flex items-center gap-1.5 border-t border-[#2a3942] bg-[#202c33] px-2 py-2">
+          <input
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleTextSubmit()
+            }}
+            placeholder="Message business..."
+            className="flex-1 rounded-full bg-[#2a3942] px-3 py-1.5 text-[12px] text-white placeholder:text-[#8696a0] focus:outline-none"
+          />
+          <button
+            type="button"
+            onClick={handleTextSubmit}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#00a884] transition-colors hover:bg-[#00c99e]"
+          >
+            <Send className="h-3.5 w-3.5 text-white" />
+          </button>
+        </div>
+
         {/* Bottom home indicator */}
         <div className="flex justify-center bg-[#111b21] pb-1.5 pt-1">
           <div className="h-1 w-14 rounded-full bg-[#2a3942]" />
@@ -690,7 +767,7 @@ function ChatMessage({
               <button
                 key={btn.reply_id || idx}
                 type="button"
-                onClick={() => {}}
+                onClick={() => onButtonTap(btn.title || btn.reply_id || "", btn.next_node_key || "")}
                 className="rounded-full border border-[#00a884]/60 bg-[#202c33] px-4 py-1 text-[11px] text-[#00a884] transition-colors hover:bg-[#00a884]/20 active:scale-95"
               >
                 {btn.title || btn.reply_id}

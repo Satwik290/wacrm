@@ -1389,6 +1389,7 @@ function StepEditor({
           onChange={(payload) =>
             onChange({ ...step, step_config: toStepConfig(payload) })
           }
+          layout="column"
         />
       )
     case "send_template":

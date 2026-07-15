@@ -57,6 +57,8 @@ interface InteractiveBuilderProps {
   onChange: (payload: InteractiveMessagePayload) => void;
   /** Show the live WhatsApp-style preview beside the form. Default true. */
   showPreview?: boolean;
+  /** Layout direction. "row" uses md:flex-row for side-by-side preview. */
+  layout?: "row" | "column";
 }
 
 /**
@@ -70,6 +72,7 @@ export function InteractiveBuilder({
   value,
   onChange,
   showPreview = true,
+  layout = "row",
 }: InteractiveBuilderProps) {
   const [advanced, setAdvanced] = useState(false);
   const validation = validateInteractivePayload(value);
@@ -88,7 +91,7 @@ export function InteractiveBuilder({
   };
 
   return (
-    <div className="flex flex-col gap-4 md:flex-row">
+    <div className={cn("flex gap-4", layout === "row" ? "flex-col md:flex-row" : "flex-col")}>
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         {/* Kind toggle */}
         <div className="flex gap-2">

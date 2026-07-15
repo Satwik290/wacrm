@@ -37,12 +37,17 @@ async function requireOwnership(
   }
   // RLS scopes this to the caller — a flow owned by another user
   // returns null (404 below).
-  const { data: flow } = await supabase
+  const { data: flow, error } = await supabase
     .from('flows')
     .select('id')
     .eq('id', flowId)
     .maybeSingle()
+  if (error) {
+    console.error('[requireOwnership] error querying flow:', error)
+    return { ok: false, status: 500, body: { error: error.message } }
+  }
   if (!flow) {
+    console.warn(`[requireOwnership] flow not found: ${flowId} for user: ${user.id}`)
     return { ok: false, status: 404, body: { error: 'Not found' } }
   }
   return { ok: true, userId: user.id, supabase }

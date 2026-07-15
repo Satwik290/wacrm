@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 /**
  * WhatsApp Simulator Panel - Phase 1
@@ -105,7 +105,7 @@ export function WhatsAppSimulator() {
   );
 
   const processNode = useCallback(
-    (nodeKey: string, currentSession: SimulatorSession): SimulatorSession => {
+    function processNodeInner(nodeKey: string, currentSession: SimulatorSession): SimulatorSession {
       const node = nodes.find((n) => n.node_key === nodeKey);
       if (!node) {
         return {
@@ -144,7 +144,7 @@ export function WhatsAppSimulator() {
               },
             ],
           };
-          return next ? processNode(next, updated) : { ...updated, status: 'ended' };
+          return next ? processNodeInner(next, updated) : { ...updated, status: 'ended' };
         }
 
         case 'send_message': {
@@ -164,7 +164,7 @@ export function WhatsAppSimulator() {
               },
             ],
           };
-          return next ? processNode(next, updated) : { ...updated, status: 'ended' };
+          return next ? processNodeInner(next, updated) : { ...updated, status: 'ended' };
         }
 
         case 'send_buttons': {
@@ -231,7 +231,7 @@ export function WhatsAppSimulator() {
               },
             ],
           };
-          return next ? processNode(next, updated) : { ...updated, status: 'ended' };
+          return next ? processNodeInner(next, updated) : { ...updated, status: 'ended' };
         }
 
         case 'collect_input': {
@@ -289,7 +289,7 @@ export function WhatsAppSimulator() {
               },
             ],
           };
-          return next ? processNode(next, updated) : { ...updated, status: 'ended' };
+          return next ? processNodeInner(next, updated) : { ...updated, status: 'ended' };
         }
 
         case 'http_fetch': {
@@ -310,7 +310,7 @@ export function WhatsAppSimulator() {
               },
             ],
           };
-          return next ? processNode(next, updated) : { ...updated, status: 'ended' };
+          return next ? processNodeInner(next, updated) : { ...updated, status: 'ended' };
         }
 
         case 'handoff': {
@@ -524,7 +524,7 @@ export function WhatsAppSimulator() {
     findNode(session.currentNodeKey)?.node_type === 'collect_input';
 
   return (
-    <div className="flex h-full flex-col items-center justify-start overflow-hidden rounded-xl bg-[#0d1117] px-3 py-4">
+    <div className="flex min-h-full flex-col items-center justify-start rounded-xl bg-[#0d1117] px-3 py-4">
       {/* Toolbar */}
       <div className="mb-3 flex w-full items-center justify-between">
         <div className="flex items-center gap-1.5">
